@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento de Horário - Lava Car</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@tailwindcss/browser@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 py-10">
+    <div class="container mx-auto rounded-lg shadow-md bg-white p-8">
+        <h1 class="text-2xl font-semibold text-blue-600 text-center mb-6">Agendamento de Horário - Lava Car</h1>
+
+        <div id="error-message" class="text-red-500 text-center mb-4 p-2 bg-red-100 rounded-md border border-red-400 hidden">
+            </div>
+
+        <form id="agendamento-form" class="space-y-4">
+            <div>
+                <label for="nome" class="block text-gray-700 text-sm font-bold mb-2">Nome Completo:</label>
+                <input type="text" id="nome" name="nome" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Digite seu nome completo">
+            </div>
+
+            <div>
+                <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email:</label>
+                <input type="email" id="email" name="email" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Digite seu email">
+            </div>
+
+            <div>
+                <label for="telefone" class="block text-gray-700 text-sm font-bold mb-2">Telefone:</label>
+                <input type="tel" id="telefone" name="telefone" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Digite seu telefone">
+            </div>
+
+            <div>
+                <label for="data" class="block text-gray-700 text-sm font-bold mb-2">Data de Agendamento:</label>
+                <input type="date" id="data" name="data" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+            </div>
+
+            <div>
+                <label for="hora" class="block text-gray-700 text-sm font-bold mb-2">Hora de Agendamento:</label>
+                <select id="hora" name="hora" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </select>
+            </div>
+
+            <div>
+                <label for="servico" class="block text-gray-700 text-sm font-bold mb-2">Serviço Desejado:</label>
+                <select id="servico" name="servico" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    <option value="" disabled selected>Selecione o serviço</option>
+                    <option value="lavagem-simples">Lavagem Simples</option>
+                    <option value="lavagem-completa">Lavagem Completa</option>
+                    <option value="enceramento">Enceramento</option>
+                    <option value="polimento">Polimento</option>
+                    <option value="higienizacao">Higienização Interna</option>
+                    <option value="lavagem-ecologica">Lavagem Ecológica</option>
+                </select>
+            </div>
+
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
+                Agendar Horário
+            </button>
+        </form>
+
+        <div id="agendamentos" class="mt-8">
+            <h2 class="text-xl font-semibold text-gray-800 text-center mb-4">Agendamentos Realizados</h2>
+            <div id="lista-agendamentos" class="space-y-3">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('agendamento-form');
+        const horaSelect = document.getElementById('hora');
+        const listaAgendamentos = document.getElementById('lista-agendamentos');
+        const errorMessageDiv = document.getElementById('error-message');
+
+        // Função para exibir mensagens de erro
+        function displayErrorMessage(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.classList.remove('hidden');
+        }
+
+        // Função para ocultar mensagens de erro
+        function hideErrorMessage() {
+            errorMessageDiv.classList.add('hidden');
+            errorMessageDiv.textContent = ''; // Limpa a mensagem de erro
+        }
+
+        // Função para popular o select de horas
+        function popularHoras() {
+            horaSelect.innerHTML = ''; // Limpa as opções existentes
+            const horaInicio = 8;
+            const horaFim = 18;
+            for (let i = horaInicio; i <= horaFim; i++) {
+                for (let j = 0; j < 2; j++) { // Loop para adicionar horas cheias e meias
+                    let minuto = j === 0 ? '00' : '30';
+                    let horaFormatada = i.toString().padStart(2, '0') + ':' + minuto;
+                    let option = document.createElement('option');
+                    option.value = horaFormatada;
+                    option.textContent = horaFormatada;
+                    horaSelect.appendChild(option);
+                }
+            }
+        }
+
+        // Função para buscar agendamentos existentes do localStorage
+        function buscarAgendamentos() {
+            let agendamentos = localStorage.getItem('agendamentos');
+            if (agendamentos) {
+                return JSON.parse(agendamentos);
+            } else {
+                return [];
+            }
+        }
+
+        // Função para salvar agendamentos no localStorage
+        function salvarAgendamentos(agendamentos) {
+            localStorage.setItem('agendamentos', JSON.stringify(agendamentos));
+        }
+
+        // Função para exibir um agendamento na lista
+        function exibirAgendamento(agendamento) {
+            let agendamentoDiv = document.createElement('div');
+            agendamentoDiv.classList.add('bg-gray-50', 'border-l-4', 'border-blue-400', 'p-4', 'rounded-md', 'shadow-sm');
+            agendamentoDiv.innerHTML = `
+                <p class="text-gray-800"><strong>Nome:</strong> ${agendamento.nome}</p>
+                <p class="text-gray-800"><strong>Email:</strong> ${agendamento.email}</p>
+                <p class="text-gray-800"><strong>Telefone:</strong> ${agendamento.telefone}</p>
+                <p class="text-blue-600"><strong>Data:</strong> ${agendamento.data} - <strong>Hora:</strong> ${agendamento.hora}</p>
+                <p class="text-gray-800"><strong>Serviço:</strong> ${agendamento.servico}</p>
+            `;
+            listaAgendamentos.appendChild(agendamentoDiv);
+        }
+
+        // Função para carregar e exibir todos os agendamentos
+        function carregarAgendamentos() {
+            listaAgendamentos.innerHTML = ''; // Limpa a lista de agendamentos
+            let agendamentos = buscarAgendamentos();
+            agendamentos.forEach(agendamento => {
+                exibirAgendamento(agendamento);
+            });
+        }
+
+        // Inicialização: popular horas e carregar agendamentos
+        popularHoras();
+        carregarAgendamentos();
+
+        // Evento de submit do formulário de agendamento
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            hideErrorMessage();
+
+            const nome = document.getElementById('nome').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const telefone = document.getElementById('telefone').value.trim();
+            const data = document.getElementById('data').value;
+            const hora = document.getElementById('hora').value;
+            const servico = document.getElementById('servico').value;
+
+            if (!nome || !email || !telefone || !data || !hora || !servico) {
+                displayErrorMessage('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            // Validação de email (simples)
+            const emailRegex = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+            if (!emailRegex.test(email)) {
+                displayErrorMessage('Por favor, insira um email válido.');
+                return;
+            }
+
+            // Validação de telefone (simples - apenas dígitos e comprimento mínimo)
+            const telefoneRegex = /^\d{10,}$/; // Exige pelo menos 10 dígitos
+            if (!telefoneRegex.test(telefone)) {
+                displayErrorMessage('Por favor, insira um telefone válido (apenas números, mínimo 10 dígitos).');
+                return;
+            }
+
+            // Validação de data (básica - não permite datas passadas)
+            const dataSelecionada = new Date(data);
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0); // Zera o horário para comparar apenas a data
+            if (dataSelecionada < hoje) {
+                displayErrorMessage('Por favor, selecione uma data futura para o agendamento.');
+                return;
+            }
+
+            const novoAgendamento = {
+                nome,
+                email,
+                telefone,
+                data,
+                hora,
+                servico
+            };
+
+            let agendamentos = buscarAgendamentos();
+            agendamentos.push(novoAgendamento);
+            salvarAgendamentos(agendamentos);
+            exibirAgendamento(novoAgendamento);
+            form.reset(); // Limpa o formulário após o agendamento
+
+            // Exibe mensagem de sucesso (pode usar um Toast ou outra forma de feedback)
+            alert('Agendamento realizado com sucesso!');
+        });
+    </script>
+</body>
+</html>
